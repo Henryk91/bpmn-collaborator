@@ -191,7 +191,7 @@ const DiagramList: React.FC = () => {
                 <div className="diagram-card-header">
                   <h3>{diagram.name}</h3>
                   <button
-                    className="share-button"
+                    className="share-button list-share-button"
                     onClick={() => handleShare(diagram.id)}
                     title="Copy share link"
                   >

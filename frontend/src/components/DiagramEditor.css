@@ -344,16 +344,22 @@
     flex-direction: row;
   }
 
-  .export-button,
-  .share-button,
-  .name-button,
-  .back-button {
-    text-align: center;
-  }
-
   .error-message {
     width: 100%;
     margin-right: 0;
     margin-bottom: 0.5rem;
   }
+}
+
+
+.settings-buttons {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: space-around;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.settings-buttons button {
+  flex: 1;
 }

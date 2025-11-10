@@ -539,15 +539,17 @@ const DiagramEditor: React.FC = () => {
               </div>
             )}
           </div>
-          <button className="name-button" onClick={handleSetName} title="Set your name">
-            👤 {userName || 'Set Name'}
-          </button>
-          <button className="export-button" onClick={handleExportDiagram}>
-            ⬇️ Export
-          </button>
-          <button className="share-button" onClick={handleShare}>
-            🔗 Share
-          </button>
+          <div className="settings-buttons">
+            <button className="name-button" onClick={handleSetName} title="Set your name">
+              👤 {userName || 'Set Name'}
+            </button>
+            <button className="export-button" onClick={handleExportDiagram}>
+              ⬇️ Export
+            </button>
+            <button className="share-button" onClick={handleShare}>
+              🔗 Share
+            </button>
+          </div>
           {showNameModal && (
             <div className="modal-overlay" onClick={handleCancelName}>
               <div className="modal-content" onClick={(e) => e.stopPropagation()}>
