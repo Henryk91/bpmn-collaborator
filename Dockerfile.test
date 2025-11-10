@@ -1,0 +1,27 @@
+# Test Dockerfile - single container for running tests
+FROM python:3.11-slim
+
+# Install Node.js 18
+RUN apt-get update && \
+    apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies (includes pytest)
+COPY backend/requirements.txt ./backend/
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# Install frontend dependencies
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm ci
+
+# Copy source code
+COPY backend/ ./backend/
+COPY frontend/ ./frontend/
+
+# Default command for tests
+CMD ["sh", "-c", "cd /app/backend && pytest tests/ -v && cd /app/frontend && npm run test -- --run"]

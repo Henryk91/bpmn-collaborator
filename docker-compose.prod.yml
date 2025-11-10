@@ -1,0 +1,18 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - CORS_ORIGINS=http://localhost:8000
+      - ENVIRONMENT=production
+    # Environment files are optional - only load if they exist
+    # env_file:
+    #   - ./backend/.env.prod
+    command: python main.py
+    stdin_open: true
+    tty: true
+

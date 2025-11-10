@@ -1,0 +1,34 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+    environment:
+      - PORT=8000
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8000
+      - ENVIRONMENT=development
+      - VITE_API_URL=http://localhost:8000
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    # Environment files are optional - variables are set directly above
+    # To use .env files, uncomment and create the files:
+    # env_file:
+    #   - ./backend/.env.dev
+    #   - ./frontend/.env.dev
+    command: >
+      sh -c "
+        cd /app/backend &&
+        uvicorn main:app --reload --host 0.0.0.0 --port 8000 &
+        sleep 2 &&
+        cd /app/frontend &&
+        npm run dev -- --host 0.0.0.0 --port 3000
+      "
+    stdin_open: true
+    tty: true

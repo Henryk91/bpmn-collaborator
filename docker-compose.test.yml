@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+    environment:
+      - ENVIRONMENT=test
+    command: >
+      sh -c "
+        cd /app/backend &&
+        pytest tests/ -v &&
+        cd /app/frontend &&
+        npm ci &&
+        npm run test -- --run
+      "
+    stdin_open: true
+    tty: true
