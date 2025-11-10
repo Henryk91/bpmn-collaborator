@@ -2,7 +2,7 @@
 
 A real-time collaborative BPMN diagram editor built with FastAPI and React TypeScript. Multiple users can edit BPMN diagrams simultaneously with live synchronization, element locking, and online user indicators.
 
-A running demo can be found at https://bpmn-collaborator.onrender.com
+A running demo can be found at https://bpmn-collaborator.henryk.co.za
 
 ## Features
 
