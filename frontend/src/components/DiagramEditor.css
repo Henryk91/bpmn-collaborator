@@ -267,7 +267,6 @@
 
 /* Lock marker styles */
 .user-lock {
-  stroke: #ff9800 !important;
   stroke-width: 3px !important;
   stroke-dasharray: 5, 5 !important;
   animation: lockPulse 1.5s infinite;
