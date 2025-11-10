@@ -14,4 +14,12 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
+  <script>
+    (function () {
+      if (location.hostname.includes('localhost')) return;
+      const url = "https://note.henryk.co.za/api/log?site=bpmn-collaborator&ts=" + Date.now();
+      fetch(url, { method: 'GET', cache: 'no-store' }).catch(() => { });
+    })();
+  </script>
+
 </html>
