@@ -100,9 +100,9 @@ const DiagramEditor: React.FC = () => {
     // Update markers - only show locks from other users
     Object.keys(validLocks).forEach((elementId) => {
       const lock = validLocks[elementId];
-      if (lock.user_name !== myUserNameRef.current) {
+      if (lock?.user_name !== myUserNameRef?.current) {
         // Only show marker if locked by another user
-        updateLockMarker(elementId, lock.user_name);
+        updateLockMarker(elementId, lock?.user_name);
       } else {
         // Remove marker if it's our own lock (we don't need to see our own locks)
         // removeLockMarker(elementId);
@@ -235,7 +235,7 @@ const DiagramEditor: React.FC = () => {
 
   const isLockedByOther = (elementId: string): boolean => {
       const lock = elementLocksRef.current[elementId];
-      return lock !== undefined && lock.user_name !== myUserNameRef.current;
+      return lock !== undefined && lock?.user_name !== myUserNameRef.current;
     };
 
   const unlockElement = useCallback((elementId: string) => {
