@@ -188,6 +188,38 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build
 docker-compose -f docker-compose.yml -f docker-compose.test.yml up --build
 ```
 
+## Deploy to Heroku (Eco Dyno)
+
+The repository contains a `heroku.yml` file so the Heroku build system can build the existing Dockerfile and run the application inside a dyno. The steps below provision an Eco tier dyno that runs the production container (same image that `run.sh prod` creates):
+
+1. **Create or target an app that uses the container stack**
+   ```bash
+   heroku login
+   heroku create <your-app-name> --stack=container
+   # or, for an existing app:
+   heroku stack:set container -a <your-app-name>
+   ```
+2. **Configure runtime environment variables** (adjust allowed origins as needed).
+   ```bash
+   heroku config:set \
+     ENVIRONMENT=production \
+     CORS_ORIGINS=https://<your-app-name>.herokuapp.com \
+     -a <your-app-name>
+   ```
+   Heroku automatically injects `PORT`; the backend already defaults to `0.0.0.0` so no change is required. The frontend is bundled into the image at build time, so no `VITE_API_URL` is necessary if the UI is served from the same origin.
+3. **Deploy using git**. With `heroku.yml` in place, a regular git push triggers the Docker build (the multi-stage build runs `npm ci`, `npm run build`, and installs Python dependencies exactly like `run.sh prod`).
+   ```bash
+   git push heroku main
+   ```
+4. **Scale the dyno to the Eco plan and verify**.
+   ```bash
+   heroku ps:scale web=1 --type=eco -a <your-app-name>
+   heroku open -a <your-app-name>
+   heroku logs --tail -a <your-app-name>  # optional: follow logs
+   ```
+
+When you need to deploy updates, commit your changes locally and run another `git push heroku main`. Heroku rebuilds the container image and restarts the Eco dyno with the new version.
+
 ## Project Structure
 
 ```
