@@ -8,6 +8,9 @@ from models import DiagramCreate, DiagramResponse, DiagramsListResponse
 from services import diagram_service
 from config import STATIC_DIR
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
 
 router = APIRouter()
 
@@ -92,7 +95,7 @@ async def websocket_endpoint(websocket: WebSocket, diagram_id: str):
         while True:
             data = await websocket.receive_json()
             message_type = data.get("type")
-            print(f"Received message of type: {message_type}")  # Debug print
+            logging.info(f"Received message of type: {message_type}")  # Debug print
             if message_type == "diagram_update":
                 new_xml = data.get("data", {}).get("xml")
                 if new_xml:
