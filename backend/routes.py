@@ -1,4 +1,5 @@
 """API routes for the application."""
+
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import FileResponse
 from typing import Dict, Any
@@ -8,6 +9,7 @@ from services import diagram_service
 from config import STATIC_DIR
 
 import logging
+
 logging.basicConfig(level=logging.INFO)
 
 
@@ -278,6 +280,7 @@ async def _broadcast_unlock_user_elements(
                 websocket,
             )
 
+
 async def _broadcast_lock_update(diagram_id: str, websocket: WebSocket) -> None:
     """Broadcast lock updates to all users in a diagram."""
     locks = diagram_service.get_element_locks(diagram_id)
@@ -308,16 +311,29 @@ async def catch_all(request: Request, path: str):
     # Special handling for GET requests (potential SPA routes)
     if request.method == "GET":
         if STATIC_DIR.exists() and (STATIC_DIR / "index.html").exists():
-            # Don't serve index.html for api/ws/static calls that missed
-            if (
-                not path.startswith("api")
-                and not path.startswith("ws")
-                and not path.startswith("static")
-            ):
-                file_path = STATIC_DIR / path
-                if file_path.exists() and file_path.is_file() and file_path.suffix:
-                    return FileResponse(str(file_path))
+            # Check if it's an existing file in the static directory
+            file_path = STATIC_DIR / path
+            if file_path.exists() and file_path.is_file():
+                return FileResponse(str(file_path))
+
+            # Only serve index.html for known frontend routes (or root)
+            # This ensures that completely random paths get a real 404 status
+            is_valid_route = not path or path == "/" or path.startswith("diagram/")
+
+            # Also ensure we don't serve index.html for missed API/WS/Static calls
+            is_reserved = (
+                path.startswith("api")
+                or path.startswith("ws")
+                or path.startswith("static")
+            )
+
+            if is_valid_route and not is_reserved:
                 return FileResponse(str(STATIC_DIR / "index.html"))
+
+            # For unknown paths that are requested by a browser (HTML),
+            # serve index.html with a 404 status code to show the "wow" page.
+            if "text/html" in request.headers.get("accept", "") and not is_reserved:
+                return FileResponse(str(STATIC_DIR / "index.html"), status_code=404)
 
     # For all other cases, return a 404
     raise HTTPException(status_code=404, detail="Not Found")

@@ -1,4 +1,5 @@
 """Configuration settings for the application."""
+
 import os
 from pathlib import Path
 from typing import List
@@ -68,7 +69,7 @@ EXAMPLE_DIAGRAMS = [
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
-</bpmn2:definitions>"""
+</bpmn2:definitions>""",
     },
     {
         "name": "Order Processing with Gateway",
@@ -127,7 +128,7 @@ EXAMPLE_DIAGRAMS = [
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
-</bpmn2:definitions>"""
+</bpmn2:definitions>""",
     },
     {
         "name": "Multi-Step Request Workflow",
@@ -188,7 +189,7 @@ EXAMPLE_DIAGRAMS = [
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
-</bpmn2:definitions>"""
+</bpmn2:definitions>""",
     },
 ]
 
