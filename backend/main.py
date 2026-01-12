@@ -1,6 +1,9 @@
 """Main application entry point."""
+
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -40,6 +43,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Global 404 handler for any non-existent endpoints
+@app.exception_handler(404)
+async def custom_404_handler(request: Request, exc: HTTPException):
+    """Custom handler for 404 errors to provide consistent JSON response."""
+    return JSONResponse(
+        status_code=404,
+        content={"detail": "Not Found"},
+    )
+
 
 # Serve built frontend assets (the React build keeps JS/CSS under ./static)
 if STATIC_ASSETS_DIR.exists():

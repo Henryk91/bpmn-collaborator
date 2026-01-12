@@ -1,7 +1,6 @@
 """API routes for the application."""
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import FileResponse
-from pathlib import Path
 from typing import Dict, Any
 
 from models import DiagramCreate, DiagramResponse, DiagramsListResponse
@@ -52,45 +51,49 @@ async def create_diagram(diagram: DiagramCreate):
 async def websocket_endpoint(websocket: WebSocket, diagram_id: str):
     """WebSocket endpoint for real-time collaboration."""
     await websocket.accept()
-    
+
     # Get custom user name from query parameters if provided
     custom_user_name = websocket.query_params.get("user_name")
-    
+
     # Verify diagram exists
     diagram = diagram_service.get_diagram(diagram_id)
     if not diagram:
         await websocket.close(code=1008, reason="Diagram not found")
         return
-    
+
     # Create user session with optional custom name
-    session = diagram_service.create_user_session(diagram_id, websocket, custom_user_name)
+    session = diagram_service.create_user_session(
+        diagram_id, websocket, custom_user_name
+    )
     diagram_service.add_connection(diagram_id, websocket)
-    
+
     # Notify others of new user
     await _broadcast_user_joined(diagram_id, session.user_name, websocket)
     # Broadcast updated user list to all users
     await _broadcast_user_list_to_all(diagram_id)
-    
+
     # Send current diagram state
     locks = diagram_service.get_element_locks(diagram_id)
-    await websocket.send_json({
-        "type": "diagram_state",
-        "data": {
-            "xml": diagram["xml"],
-            "locks": {
-                elem_id: {
-                    "user_id": lock.user_id,
-                    "user_name": lock.user_name,
-                }
-                for elem_id, lock in locks.items()
+    await websocket.send_json(
+        {
+            "type": "diagram_state",
+            "data": {
+                "xml": diagram["xml"],
+                "locks": {
+                    elem_id: {
+                        "user_id": lock.user_id,
+                        "user_name": lock.user_name,
+                    }
+                    for elem_id, lock in locks.items()
+                },
+                "my_user_name": session.user_name,  # Send the user's own name
             },
-            "my_user_name": session.user_name,  # Send the user's own name
-        },
-    })
-    
+        }
+    )
+
     # Send current users
     await _send_user_list(diagram_id, websocket)
-    
+
     try:
         while True:
             data = await websocket.receive_json()
@@ -108,22 +111,26 @@ async def websocket_endpoint(websocket: WebSocket, diagram_id: str):
                             "data": {
                                 "xml": new_xml,
                                 "locks": {
-                                        elem_id: {
-                                            "user_id": lock.user_id,
-                                            "user_name": lock.user_name,
-                                        }
-                                        for elem_id, lock in locks.items()
-                                    },
+                                    elem_id: {
+                                        "user_id": lock.user_id,
+                                        "user_name": lock.user_name,
+                                    }
+                                    for elem_id, lock in locks.items()
                                 },
+                            },
                             "user": session.user_name,
                         },
                         websocket,
                     )
-            
+
             elif message_type == "element_lock":
                 element_id = data.get("data", {}).get("element_id")
                 # Skip root element and invalid IDs
-                if element_id and element_id != "__implicitroot" and not element_id.startswith("__"):
+                if (
+                    element_id
+                    and element_id != "__implicitroot"
+                    and not element_id.startswith("__")
+                ):
                     # Get previous element locked by this user (before locking new one)
                     previous_locks = diagram_service.get_element_locks(diagram_id)
                     previous_element_id = None
@@ -131,20 +138,23 @@ async def websocket_endpoint(websocket: WebSocket, diagram_id: str):
                         if lock.user_id == session.user_id and elem_id != element_id:
                             previous_element_id = elem_id
                             break
-                    
+
                     # Lock the new element (this will automatically unlock previous element)
                     diagram_service.lock_element(
                         diagram_id, element_id, session.user_id, session.user_name
                     )
-                    
+
                     # Broadcast unlock for previous element if it existed
                     if previous_element_id:
                         await _broadcast_to_others(
                             diagram_id,
-                            {"type": "element_unlocked", "data": {"element_id": previous_element_id}},
+                            {
+                                "type": "element_unlocked",
+                                "data": {"element_id": previous_element_id},
+                            },
                             websocket,
                         )
-                    
+
                     # Broadcast lock for new element
                     await _broadcast_to_others(
                         diagram_id,
@@ -158,7 +168,7 @@ async def websocket_endpoint(websocket: WebSocket, diagram_id: str):
                         },
                         websocket,
                     )
-            
+
             elif message_type == "element_unlock":
                 element_id = data.get("data", {}).get("element_id")
                 if element_id:
@@ -167,13 +177,16 @@ async def websocket_endpoint(websocket: WebSocket, diagram_id: str):
                     ):
                         await _broadcast_to_others(
                             diagram_id,
-                            {"type": "element_unlocked", "data": {"element_id": element_id}},
+                            {
+                                "type": "element_unlocked",
+                                "data": {"element_id": element_id},
+                            },
                             websocket,
                         )
-            
+
             elif message_type == "ping":
                 await websocket.send_json({"type": "pong"})
-    
+
     except WebSocketDisconnect:
         # Cleanup on disconnect
         diagram_service.remove_connection(diagram_id, websocket)
@@ -191,14 +204,14 @@ async def _broadcast_to_others(
     """Broadcast message to all connections except sender."""
     connections = diagram_service.get_connections(diagram_id)
     disconnected = set()
-    
+
     for connection in connections:
         if connection != sender:
             try:
                 await connection.send_json(message)
             except Exception:
                 disconnected.add(connection)
-    
+
     # Clean up disconnected connections
     for conn in disconnected:
         diagram_service.remove_connection(diagram_id, conn)
@@ -227,7 +240,7 @@ async def _send_user_list(diagram_id: str, websocket: WebSocket) -> None:
     """Send list of current users to a websocket."""
     sessions = diagram_service.get_user_sessions_for_diagram(diagram_id)
     users = list(set(session.user_name for session in sessions))
-    
+
     await websocket.send_json({"type": "user_list", "data": {"users": users}})
 
 
@@ -236,22 +249,25 @@ async def _broadcast_user_list_to_all(diagram_id: str) -> None:
     connections = diagram_service.get_connections(diagram_id)
     sessions = diagram_service.get_user_sessions_for_diagram(diagram_id)
     users = list(set(session.user_name for session in sessions))
-    
+
     message = {"type": "user_list", "data": {"users": users}}
-    
+
     disconnected = set()
     for connection in connections:
         try:
             await connection.send_json(message)
         except Exception:
             disconnected.add(connection)
-    
+
     # Clean up disconnected connections
     for conn in disconnected:
         diagram_service.remove_connection(diagram_id, conn)
         diagram_service.remove_user_session_by_websocket(conn)
 
-async def _broadcast_unlock_user_elements(diagram_id: str, user_id: str, websocket: WebSocket) -> None:
+
+async def _broadcast_unlock_user_elements(
+    diagram_id: str, user_id: str, websocket: WebSocket
+) -> None:
     """Broadcast unlock messages for all elements locked by a user."""
     locks = diagram_service.get_element_locks(diagram_id)
     for elem_id, lock in locks.items():
@@ -271,26 +287,37 @@ async def _broadcast_lock_update(diagram_id: str, websocket: WebSocket) -> None:
             "type": "locks_update",
             "data": {
                 "locks": {
-                        elem_id: {
-                            "user_id": lock.user_id,
-                            "user_name": lock.user_name,
-                        }
-                        for elem_id, lock in locks.items()
-                    },
+                    elem_id: {
+                        "user_id": lock.user_id,
+                        "user_name": lock.user_name,
+                    }
+                    for elem_id, lock in locks.items()
                 },
+            },
         },
         websocket,
     )
 
-# SPA route handler (must be last)
-@router.get("/{path:path}")
-async def serve_spa(path: str):
-    """Serve SPA routes in production."""
-    if STATIC_DIR.exists() and (STATIC_DIR / "index.html").exists():
-        if not path.startswith("api") and not path.startswith("ws") and not path.startswith("static"):
-            file_path = STATIC_DIR / path
-            if file_path.exists() and file_path.is_file() and file_path.suffix:
-                return FileResponse(str(file_path))
-            return FileResponse(str(STATIC_DIR / "index.html"))
-    raise HTTPException(status_code=404, detail="Not found")
 
+# Catch-all route handler for non-existent endpoints
+@router.api_route(
+    "/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]
+)
+async def catch_all(request: Request, path: str):
+    """Handle all other routes - serves SPA for GET or 404 for others."""
+    # Special handling for GET requests (potential SPA routes)
+    if request.method == "GET":
+        if STATIC_DIR.exists() and (STATIC_DIR / "index.html").exists():
+            # Don't serve index.html for api/ws/static calls that missed
+            if (
+                not path.startswith("api")
+                and not path.startswith("ws")
+                and not path.startswith("static")
+            ):
+                file_path = STATIC_DIR / path
+                if file_path.exists() and file_path.is_file() and file_path.suffix:
+                    return FileResponse(str(file_path))
+                return FileResponse(str(STATIC_DIR / "index.html"))
+
+    # For all other cases, return a 404
+    raise HTTPException(status_code=404, detail="Not Found")
