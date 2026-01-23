@@ -17,11 +17,13 @@ A running demo can be found at https://bpmn-collaborator.henryk.co.za
 ## Tech Stack
 
 ### Backend
+
 - **FastAPI**: Modern Python web framework
 - **WebSockets**: Real-time bidirectional communication
 - **Uvicorn**: ASGI server
 
 ### Frontend
+
 - **React 18**: UI library
 - **TypeScript**: Type-safe JavaScript
 - **bpmn-js**: BPMN diagram modeling library
@@ -55,6 +57,7 @@ chmod +x run.sh
 ```
 
 This starts a single Docker container with:
+
 - Backend API at `http://localhost:8000`
 - Frontend dev server at `http://localhost:3000`
 
@@ -102,19 +105,39 @@ npm install
 npm run dev
 ```
 
+### Database & Migrations
+
+- **PostgreSQL**: Relational database for persistent storage (e.g. Neon, AWS RDS)
+- **SQLAlchemy**: SQL Toolkit and ORM
+- **Alembic**: Database migrations management
+
+## Database Setup
+
+1. **Environment Variables**: Create a `.env` file in the `backend/` directory (see `.env.example`):
+
+   ```env
+   DATABASE_URL=postgresql://user:password@host:port/dbname?sslmode=require
+   ```
+
+2. **Run Migrations**:
+   Migrations are managed via Alembic. To apply migrations to your database:
+
+   ```bash
+   cd backend
+   ./venv/bin/python3 -m alembic upgrade head
+   ```
+
+3. **Generate New Migrations**:
+   If you modify the models in `backend/models.py`, generate a new migration script:
+   ```bash
+   cd backend
+   ./venv/bin/python3 -m alembic revision --autogenerate -m "description of changes"
+   ```
+
 ## Environment Configuration
 
-### Backend Environment Files
-
-Create `.env.dev` or `.env.prod` in the `backend/` directory:
-
-```env
-PORT=8000
-CORS_ORIGINS=http://localhost:3000
-ENVIRONMENT=development
-```
-
 For production:
+
 ```env
 PORT=8000
 CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
@@ -130,6 +153,7 @@ VITE_API_URL=http://localhost:8000
 ```
 
 For production, update with your backend URL:
+
 ```env
 VITE_API_URL=https://api.yourdomain.com
 ```
@@ -141,6 +165,7 @@ The application runs in Docker containers by default. The `run.sh` script handle
 ### Development Mode
 
 Runs a single container with both backend and frontend:
+
 - Backend with hot reload
 - Frontend with hot reload
 - Volume mounts for live code changes
@@ -152,6 +177,7 @@ Runs a single container with both backend and frontend:
 ### Production Mode
 
 Runs a single container with built frontend:
+
 - Backend serves static files
 - Optimized production build
 
@@ -162,6 +188,7 @@ Runs a single container with built frontend:
 ### Test Mode
 
 Runs tests in a container:
+
 - Backend tests (pytest)
 - Frontend tests (npm test)
 
@@ -174,16 +201,19 @@ Runs tests in a container:
 If you prefer to use Docker directly:
 
 **Development:**
+
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
 **Production:**
+
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build
 ```
 
 **Tests:**
+
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.test.yml up --build
 ```

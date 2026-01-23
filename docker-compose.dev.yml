@@ -17,11 +17,6 @@ services:
       - VITE_API_URL=http://localhost:8000
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
-    # Environment files are optional - variables are set directly above
-    # To use .env files, uncomment and create the files:
-    # env_file:
-    #   - ./backend/.env.dev
-    #   - ./frontend/.env.dev
     command: >
       sh -c "
         cd /app/backend &&

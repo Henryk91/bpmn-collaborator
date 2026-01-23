@@ -23,7 +23,8 @@ from services import diagram_service
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    diagram_service.initialize_examples()
+    # Seed the database with examples if it's new/empty
+    diagram_service.seed_database()
     yield
 
 
